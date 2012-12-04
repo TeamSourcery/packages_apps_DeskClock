@@ -26,7 +26,6 @@ import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnErrorListener;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -45,14 +44,6 @@ public class AlarmKlaxon extends Service {
 
     private static final long[] sVibratePattern = new long[] { 500, 500 };
 
-    /* 675ms delays between volume increases from 0.1f to 1.0f at
-     * 0.01f intervals equates to approximately 1 minute before the
-     * alarm reaches full volume
-     */
-    private static final long INCVOL_DELAY = 675;
-    private static final float INCVOL_START = 0.1f;
-    private static final float INCVOL_DELTA = 0.01f;
-
     private boolean mPlaying = false;
     private Vibrator mVibrator;
     private MediaPlayer mMediaPlayer;
@@ -60,12 +51,11 @@ public class AlarmKlaxon extends Service {
     private long mStartTime;
     private TelephonyManager mTelephonyManager;
     private int mInitialCallState;
-    private float mCurrentIncVol = 1.0f;
 
     // Internal messages
     private static final int KILLER = 1000;
-    private static final int INCVOL = 1001;
     private Handler mHandler = new Handler() {
+        @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case KILLER:
@@ -74,17 +64,6 @@ public class AlarmKlaxon extends Service {
                     }
                     sendKillBroadcast((Alarm) msg.obj);
                     stopSelf();
-                    break;
-                case INCVOL:
-                    if (mPlaying && mMediaPlayer != null && mMediaPlayer.isPlaying()) {
-                        mCurrentIncVol += INCVOL_DELTA;
-                        if (mCurrentIncVol < 1.0f) {
-                            mHandler.sendEmptyMessageDelayed(INCVOL, INCVOL_DELAY);
-                        } else {
-                            mCurrentIncVol = 1.0f;
-                        }
-                        mMediaPlayer.setVolume(mCurrentIncVol, mCurrentIncVol);
-                    }
                     break;
             }
         }
@@ -119,6 +98,9 @@ public class AlarmKlaxon extends Service {
     @Override
     public void onDestroy() {
         stop();
+        Intent alarmDone = new Intent(Alarms.ALARM_DONE_ACTION);
+        sendBroadcast(alarmDone);
+
         // Stop listening for incoming calls.
         mTelephonyManager.listen(mPhoneStateListener, 0);
         AlarmAlertWakeLock.releaseCpuLock();
@@ -195,6 +177,7 @@ public class AlarmKlaxon extends Service {
             // RingtoneManager.
             mMediaPlayer = new MediaPlayer();
             mMediaPlayer.setOnErrorListener(new OnErrorListener() {
+                @Override
                 public boolean onError(MediaPlayer mp, int what, int extra) {
                     Log.e("Error occurred while playing audio.");
                     mp.stop();
@@ -215,11 +198,6 @@ public class AlarmKlaxon extends Service {
                             R.raw.in_call_alarm);
                 } else {
                     mMediaPlayer.setDataSource(this, alert);
-
-                    if (alarm.incvol) {
-                        mCurrentIncVol = INCVOL_START;
-                        mMediaPlayer.setVolume(mCurrentIncVol, mCurrentIncVol);
-                    }
                 }
                 startAlarm(mMediaPlayer);
             } catch (Exception ex) {
@@ -231,12 +209,6 @@ public class AlarmKlaxon extends Service {
                     mMediaPlayer.reset();
                     setDataSourceFromResource(getResources(), mMediaPlayer,
                             R.raw.fallbackring);
-
-                    if (alarm.incvol) {
-                        mCurrentIncVol = INCVOL_START;
-                        mMediaPlayer.setVolume(mCurrentIncVol, mCurrentIncVol);
-                    }
-
                     startAlarm(mMediaPlayer);
                 } catch (Exception ex2) {
                     // At this point we just don't play anything.
@@ -255,10 +227,6 @@ public class AlarmKlaxon extends Service {
         enableKiller(alarm);
         mPlaying = true;
         mStartTime = System.currentTimeMillis();
-
-        if (alarm.incvol) {
-            mHandler.sendEmptyMessageDelayed(INCVOL, INCVOL_DELAY);
-        }
     }
 
     // Do the common stuff when starting the alarm.
@@ -294,11 +262,6 @@ public class AlarmKlaxon extends Service {
         if (Log.LOGV) Log.v("AlarmKlaxon.stop()");
         if (mPlaying) {
             mPlaying = false;
-
-            mHandler.removeMessages(INCVOL);
-
-            Intent alarmDone = new Intent(Alarms.ALARM_DONE_ACTION);
-            sendBroadcast(alarmDone);
 
             // Stop audio playing
             if (mMediaPlayer != null) {

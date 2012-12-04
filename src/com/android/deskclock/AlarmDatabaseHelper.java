@@ -19,6 +19,7 @@ package com.android.deskclock;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -31,7 +32,7 @@ import android.net.Uri;
 class AlarmDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "alarms.db";
-    private static final int DATABASE_VERSION = 6;
+    private static final int DATABASE_VERSION = 5;
 
     public AlarmDatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -48,15 +49,14 @@ class AlarmDatabaseHelper extends SQLiteOpenHelper {
                    "enabled INTEGER, " +
                    "vibrate INTEGER, " +
                    "message TEXT, " +
-                   "alert TEXT, " +
-                   "incvol INTEGER);");
+                   "alert TEXT);");
 
         // insert default alarms
         String insertMe = "INSERT INTO alarms " +
                 "(hour, minutes, daysofweek, alarmtime, enabled, vibrate, " +
-                " message, alert, incvol) VALUES ";
-        db.execSQL(insertMe + "(8, 30, 31, 0, 0, 1, '', '', 0);");
-        db.execSQL(insertMe + "(9, 00, 96, 0, 0, 1, '', '', 0);");
+                " message, alert) VALUES ";
+        db.execSQL(insertMe + "(8, 30, 31, 0, 0, 1, '', '');");
+        db.execSQL(insertMe + "(9, 00, 96, 0, 0, 1, '', '');");
     }
 
     @Override
@@ -72,7 +72,29 @@ class AlarmDatabaseHelper extends SQLiteOpenHelper {
 
     Uri commonInsert(ContentValues values) {
         SQLiteDatabase db = getWritableDatabase();
-        long rowId = db.insert("alarms", Alarm.Columns.MESSAGE, values);
+        db.beginTransaction();
+        long rowId = -1;
+        try {
+            // Check if we are trying to re-use an existing id.
+            Object value = values.get(Alarm.Columns._ID);
+            if (value != null) {
+                int id = (Integer) value;
+                if (id > -1) {
+                    final Cursor cursor = db
+                            .query("alarms", new String[]{Alarm.Columns._ID}, "_id = ?",
+                                    new String[]{id + ""}, null, null, null);
+                    if (cursor.moveToFirst()) {
+                        // Record exists. Remove the id so sqlite can generate a new one.
+                        values.putNull(Alarm.Columns._ID);
+                    }
+                }
+            }
+
+            rowId = db.insert("alarms", Alarm.Columns.MESSAGE, values);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
         if (rowId < 0) {
             throw new SQLException("Failed to insert row");
         }
