@@ -298,9 +298,6 @@ public class AlarmAlertFullScreen extends Activity implements GlowPadView.OnTrig
         finish();
     }
 
-    finish();
-    }
-
     private void attachOrientationListener() {
         if (mFlipAction != 0) {
             mOrientationListener = new SensorEventListener() {
