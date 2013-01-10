@@ -217,8 +217,6 @@ public class SettingsActivity extends PreferenceActivity
         }
     }
 
-    }
-
     private void updateFlipActionSummary(ListPreference listPref, String action) {
         int i = Integer.parseInt(action);
         listPref.setSummary(getString(R.string.flip_action_summary,
