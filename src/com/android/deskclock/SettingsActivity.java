@@ -75,6 +75,10 @@ public class SettingsActivity extends PreferenceActivity
     static final String KEY_DIGITAL_CLOCK_ALARM_COLOR =
             "digital_clock_alarm_color";
 
+    // Old and new default preferences, needed to switch the default on upgrade
+    public static final String DEFAULT_VOLUME_BEHAVIOR = "0";
+    public static final String OLD_DEFAULT_VOLUME_BEHAVIOR = "1";
+
     private static CharSequence[][] mTimezones;
     private long mTime;
 

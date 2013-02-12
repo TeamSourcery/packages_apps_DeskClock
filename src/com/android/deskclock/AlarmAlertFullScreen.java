@@ -56,7 +56,7 @@ public class AlarmAlertFullScreen extends Activity implements GlowPadView.OnTrig
     private final boolean LOG = true;
     // These defaults must match the values in res/xml/settings.xml
     private static final String DEFAULT_SNOOZE = "10";
-    private static final String DEFAULT_VOLUME_BEHAVIOR = "2";
+    
     private static final String DEFAULT_FLIP_ACTION = "0";
     private static final String DEFAULT_SHAKE_ACTION = "1";
     private static final boolean DEFAULT_MATH_VALUE = false;
@@ -131,7 +131,7 @@ public class AlarmAlertFullScreen extends Activity implements GlowPadView.OnTrig
         final String vol =
                 PreferenceManager.getDefaultSharedPreferences(this)
                 .getString(SettingsActivity.KEY_VOLUME_BEHAVIOR,
-                        DEFAULT_VOLUME_BEHAVIOR);
+                        SettingsActivity.DEFAULT_VOLUME_BEHAVIOR);
         mVolumeBehavior = Integer.parseInt(vol);
 
         final String flipAction = PreferenceManager
