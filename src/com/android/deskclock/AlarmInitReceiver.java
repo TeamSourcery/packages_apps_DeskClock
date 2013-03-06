@@ -52,13 +52,13 @@ public class AlarmInitReceiver extends BroadcastReceiver {
                     // Clear stopwatch and timers data
                     SharedPreferences prefs =
                             PreferenceManager.getDefaultSharedPreferences(context);
-                    Log.v("AlarmInitReceiver - Cleaning old timer and stopwatch data");
-                    TimerObj.cleanTimersFromSharedPrefs(prefs);
+                    Log.v("AlarmInitReceiver - Reset timers and clear stopwatch data");
+                    TimerObj.resetTimersInSharedPrefs(prefs);
                     Utils.clearSwSharedPref(prefs);
 
                     if (!prefs.getBoolean(PREF_VOLUME_DEF_DONE, false)) {
                         // Fix the default
-                        Log.v("AlarmInitReceiver - checking volume button default");
+                        Log.v("AlarmInitReceiver - resetting volume button default");
                         switchVolumeButtonDefault(prefs);
                     }
                 }
@@ -69,23 +69,15 @@ public class AlarmInitReceiver extends BroadcastReceiver {
             }
         });
     }
+
     private void switchVolumeButtonDefault(SharedPreferences prefs) {
         SharedPreferences.Editor editor = prefs.edit();
 
-        // Get the volume button behavior setting
-        final String vol = prefs.getString(SettingsActivity.KEY_VOLUME_BEHAVIOR,
-	        SettingsActivity.DEFAULT_VOLUME_BEHAVIOR);
-        // If the setting is "Snooze", change it to "Do Nothing"
-        if (SettingsActivity.OLD_DEFAULT_VOLUME_BEHAVIOR.equals(vol)) {
-                editor.putString(SettingsActivity.KEY_VOLUME_BEHAVIOR,
-                    SettingsActivity.DEFAULT_VOLUME_BEHAVIOR);
-            Log.v("AlarmInitReceiver - Reset volume button default");
-        } else {
-            Log.v("AlarmInitReceiver - No need to reset volume button default");
-        }
+        editor.putString(SettingsActivity.KEY_VOLUME_BEHAVIOR,
+            SettingsActivity.DEFAULT_VOLUME_BEHAVIOR);
 
         // Make sure we do it only once
         editor.putBoolean(PREF_VOLUME_DEF_DONE, true);
         editor.apply();
     }
- }
+}
