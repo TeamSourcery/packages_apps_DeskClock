@@ -20,9 +20,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.database.ContentObserver;
 import android.graphics.Typeface;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.text.format.DateFormat;
 import android.util.AttributeSet;
@@ -33,6 +35,8 @@ import android.widget.TextView;
 import java.text.DateFormatSymbols;
 import java.util.Calendar;
 import java.util.TimeZone;
+
+ 
 
 /**
  * Displays the time
@@ -52,6 +56,8 @@ public class DigitalClock extends LinearLayout {
     private boolean mAttached;
     private final Typeface mRobotoThin;
     private String mTimeZoneId;
+
+    private SharedPreferences mPrefs;
 
 
     /* called by system on minute ticks */
@@ -92,6 +98,10 @@ public class DigitalClock extends LinearLayout {
             mAmPm.setText(isMorning ? mAmString : mPmString);
         }
 
+        void setTextColor(int color) {
+            mAmPm.setTextColor(color);
+        }
+
         CharSequence getAmPmText() {
             return mAmPm.getText();
         }
@@ -108,6 +118,17 @@ public class DigitalClock extends LinearLayout {
         }
     }
 
+     private class ColorChangeObserver extends ContentObserver {
+        public ColorChangeObserver() {
+            super(new Handler());
+        }
+        @Override
+        public void onChange(boolean selfChange) {
+            setColors();
+            updateTime();
+        }
+    }
+
     public DigitalClock(Context context) {
         this(context, null);
     }
@@ -120,6 +141,8 @@ public class DigitalClock extends LinearLayout {
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
+
+        mPrefs =  PreferenceManager.getDefaultSharedPreferences(getContext());
 
         mTimeDisplayHours = (TextView)findViewById(R.id.timeDisplayHours);
         mTimeDisplayMinutes = (TextView)findViewById(R.id.timeDisplayMinutes);
@@ -207,6 +230,8 @@ public class DigitalClock extends LinearLayout {
             fullTimeStr.append(mAmPm.getAmPmText());
         }
 
+        setColors();
+
         // Update accessibility string.
         setContentDescription(fullTimeStr);
     }
@@ -216,10 +241,19 @@ public class DigitalClock extends LinearLayout {
         mAmPm.setShowAmPm(!Alarms.get24HourMode(getContext()));
     }
 
+    private void setColors() {
+        int colorTime = mPrefs.getInt("digital_clock_time_color",
+            getContext().getResources().getColor(R.color.clock_white));
+
+        mTimeDisplayHours.setTextColor(colorTime);
+        mTimeDisplayMinutes.setTextColor(colorTime);
+        mAmPm.setTextColor(colorTime);
+    }
+
     void setLive(boolean live) {
         mLive = live;
     }
-
+    
     public void setTimeZone(String id) {
         mTimeZoneId = id;
         updateTime();
